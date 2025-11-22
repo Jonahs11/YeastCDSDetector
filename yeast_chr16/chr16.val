@@ -1,0 +1,5 @@
+NOTE: valid [SEQ_INST.HistAssemblyMissing] TPA record tpg|BK006949.2| should have Seq-hist.assembly for PRIMARY block BIOSEQ: tpg|BK006949.2|: raw, dna len= 948066
+WARNING: valid [SEQ_FEAT.IdenticalGeneSymbolAndSynonym] gene synonym has same value (FDH2) as locus of another gene feature FEATURE: Gene: YPL276W [tpg|BK006949.2|:17948-18385] [tpg|BK006949.2|: raw, dna len= 948066]
+WARNING: valid [SEQ_FEAT.UndesiredGeneSynonym] gene synonym without gene locus or description FEATURE: Gene: YPL276W [tpg|BK006949.2|:17948-18385] [tpg|BK006949.2|: raw, dna len= 948066]
+WARNING: valid [SEQ_FEAT.UndesiredGeneSynonym] gene synonym without gene locus or description FEATURE: Gene: YPR089W [tpg|BK006949.2|:713275-715941] [tpg|BK006949.2|: raw, dna len= 948066]
+WARNING: valid [SEQ_FEAT.BadEcNumberValue] 3.6.1.74 is not a legal value for qualifier EC_number FEATURE: Prot: polynucleotide 5'-phosphatase [tpg|DAA11208.1|:1-549] [tpg|DAA11208.1|: raw, aa len= 549]
