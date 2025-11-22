@@ -52,10 +52,6 @@ def init_cpts(window_size: int):
     return pi, transitions, emissions, seq_to_inx
 
 
-# needed expectations
-# P(state at time 1 | sequence)
-# P(state at time t, state at time t+1 | sequence)
-# P(state at time t, emission t | sequence)
 def run_forward_algo(pi, transitions_mat, emissions_mat, seq, seq_to_inx):
     n_states = transitions_mat.shape[0]
     T = len(seq)
@@ -99,6 +95,52 @@ def run_backward_algo(pi, transitions_mat, emissions_mat, seq, seq_to_inx):
 
 
 
+def compute_prob_states_given_obs(alpha, beta, t_inx):
+    state_i_probs = alpha[:,t_inx] * beta[:,t_inx] / np.sum(alpha[:, t_inx] * beta[:, t_inx])
+    return state_i_probs
+
+def compute_prob_state_and_next_given_obs(alpha, beta, transitions_mat, emissions_mat, seq, seq_to_inx, t_inx):
+    n_states = transitions_mat.shape[0]
+    res_mat = np.zeros((n_states, n_states))
+    
+    next_obs_id = seq_to_inx[seq[t_inx + 1]]
+    
+    denom = np.sum(alpha[:, t_inx] * beta[:, t_inx])
+    for next_state_inx in range(n_states):
+        num = (alpha[:, t_inx] * transitions_mat[:, next_state_inx] * emissions_mat[next_state_inx, next_obs_id] * beta[next_state_inx, t_inx+1]) / denom
+        res_mat[:, next_state_inx] = num
+        
+    return res_mat
+
+
+# needed expectations
+def em(alpha, beta, transitions_mat, emissions_mat, seq, seq_to_inx):
+    
+    T = len(seq)
+    n_states = transitions_mat.shape[0]
+    new_pi = compute_prob_states_given_obs(alpha, beta, 0)
+
+    new_transition_mat = np.zeros(transitions_mat.shape)
+    denom = np.zeros((n_states, ))
+    for t_inx in range(T-1):
+        new_transition_mat += compute_prob_state_and_next_given_obs(alpha, beta, transitions_mat, emissions_mat, seq, seq_to_inx, t_inx)
+        denom += compute_prob_states_given_obs(alpha, beta, t_inx)
+
+    new_transition_mat /= denom
+    
+    new_emission_mat = np.zeros(emissions_mat.shape)
+    denom_emission = np.zeros((n_states, ))
+    for t_inx in range(T):
+        emission_id = seq_to_inx[seq[t_inx]]
+        prob_state_given_obs = compute_prob_states_given_obs(alpha, beta, t_inx)
+        new_emission_mat[:, emission_id] += prob_state_given_obs
+        denom_emission += compute_prob_states_given_obs(alpha, beta, t_inx)
+        
+    new_emission_mat /= denom_emission
+    return new_pi, new_transition_mat, new_emission_mat
+        
+        
+
 
 if __name__ == "__main__":
     window_size = 1
@@ -108,9 +150,8 @@ if __name__ == "__main__":
     pi, transitions_mat, emissions_mat, seq_to_inx = init_cpts(window_size)
     alpha = run_forward_algo(pi, transitions_mat, emissions_mat, seq, seq_to_inx)
     beta = run_backward_algo(pi, transitions_mat, emissions_mat, seq, seq_to_inx)
+    em(alpha, beta, transitions_mat, emissions_mat, seq, seq_to_inx)
 
-    print(alpha.shape)
-    print(beta.shape)
     
     
 
