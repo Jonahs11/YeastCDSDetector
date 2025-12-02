@@ -38,13 +38,13 @@ def init_cpts(window_size: int):
     n_possible_emissions = 4 ** window_size
     
     # assume less likely to start coding
-    pi = np.array([0.9, 0.1])
+    pi = np.array([0.99, 0.01])
     
     # as regions are contigous make keep state higher
-    transitions = np.array([[0.9, 0.1], [0.1, 0.9]])
+    transitions = np.array([[0.999, 0.001], [0.01, 0.99]])
 
-    emissions  = np.random.rand(2, n_possible_emissions)
-    emissions = emissions / emissions.sum(axis=1).reshape(-1, 1)
+    emissions = np.array([[0.31, 0.19, 0.19, 0.31],
+                          [0.28, 0.22, 0.22, 0.28]])
     
     all_possible_seqs = create_all_possible_combos(window_size)
     seq_to_inx = {}

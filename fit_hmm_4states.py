@@ -34,16 +34,16 @@ def init_cpts(): #(window_size: int)
     pi = np.array([0.99, 0.01, 0, 0])
     
     # as regions are continous make keep state higher
-    transitions = np.array([[0.99, 0.01, 0, 0],
+    transitions = np.array([[0.999, 0.001, 0, 0],
                             [0, 0, 1, 0],
                             [0, 0, 0, 1],
                             [0.01, 0.99, 0, 0]])
 
     # for initial emissions hard coded as document
-    emissions = np.array([[0.25, 0.25, 0.25, 0.25],
-                          [0.23, 0.27, 0.27, 0.23],
-                          [0.23, 0.27, 0.27, 0.23],
-                          [0.2, 0.3, 0.3, 0.2]])
+    emissions = np.array([[0.31, 0.19, 0.19, 0.31],
+                          [0.28, 0.22, 0.22, 0.28],
+                          [0.28, 0.22, 0.22, 0.28],
+                          [0.28, 0.22, 0.22, 0.28]])
 
     # for random emissions
     #emissions  = np.random.rand(2, n_possible_emissions)
