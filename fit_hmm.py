@@ -41,7 +41,7 @@ def init_cpts(window_size: int):
     pi = np.array([0.99, 0.01])
     
     # as regions are contigous make keep state higher
-    transitions = np.array([[0.999, 0.001], [0.01, 0.99]])
+    transitions = np.array([[0.999, 0.001], [0.001, 0.999]])
 
     emissions = np.array([[0.31, 0.19, 0.19, 0.31],
                           [0.28, 0.22, 0.22, 0.28]])
