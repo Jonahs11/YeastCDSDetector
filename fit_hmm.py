@@ -2,6 +2,10 @@ from numpy.typing import NDArray
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime
+import pickle
+import os
+
 sequence_path = "./seq_to_coding_file.csv"
 
 def _helper(seq_lis, window_size):
@@ -171,8 +175,6 @@ def em(alpha, beta, transitions_mat, emissions_mat, seq, seq_to_inx):
         
 
 def fit_hmm_loop(pi, transition_mat, emissions_mat, seq, seq_to_inx, iterations=100):
-    
-    
     log_likes = []
     for iter in range(iterations):
         # print("Iter: ",str(iter))
@@ -190,12 +192,81 @@ def fit_hmm_loop(pi, transition_mat, emissions_mat, seq, seq_to_inx, iterations=
     return log_likes, pi, transition_mat, emissions_mat
 
 
+def viterbi(
+    emissions_mat: NDArray, pi: NDArray, seq: NDArray, transitions_mat: NDArray, seq_to_inx: dict
+) -> NDArray:
+
+    S, M = emissions_mat.shape
+    T, = seq.shape
+
+    epsilon = 1e-300
+
+    log_emission = np.log(emissions_mat + epsilon)
+    log_pi = np.log(pi + epsilon)
+    log_transition = np.log(transitions_mat + epsilon)
+
+    prob = np.zeros((S, T), dtype = float)
+    prev = np.zeros((S, T), dtype = int)
+    prob[:,0] = log_pi + log_emission[:, seq_to_inx[seq[0]]]
+
+    # Build matrices
+    for t in range(1, T):
+        temp = prob[:, t-1][:, None] + log_transition
+        prob[:, t] = np.max(temp, axis = 0) + log_emission[:,seq_to_inx[seq[t]]]
+        prev[:, t] = np.argmax(temp, axis = 0)
+
+    # Find best path
+    optimal_path = np.zeros(T, dtype = int)
+    optimal_path[T - 1] = np.argmax(prob[:, T-1])
+    for t in range(T-2, -1, -1):
+        optimal_path[t] = prev[optimal_path[t+1], t+1]
+
+    return optimal_path
+
+def plot_viterbi(viterbi_path: NDArray, true_path: NDArray) -> None:
+    x = np.arange(len(viterbi_path))
+
+    viterbi_path_01 = (viterbi_path != 0).astype(int)
+
+    match = (viterbi_path_01 == true_path)
+
+    fig, ax = plt.subplots(figsize=(14, 4))
+
+    ax.fill_between(
+        x, 0, 1, where=match,
+        color="green", alpha=0.15,
+        transform=ax.get_xaxis_transform()
+    )
+
+    ax.fill_between(
+        x, 0, 1, where=~match,
+        color="red", alpha=0.15,
+        transform=ax.get_xaxis_transform()
+    )
+
+    ax.plot(x, viterbi_path_01, label="Predicted",
+            color="black", linewidth=2.0)
+    ax.plot(x, true_path, label="True",
+            color="orange", linewidth=2.0, linestyle="--")
+
+    ax.set_ylim(-0.1, 1.1)  # keeps y-scale fixed
+    ax.set_xlim(0, len(x) - 1)  # freezes x-axis limits
+
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+
 
 if __name__ == "__main__":
     window_size = 1
     iterations=20
     seq_df = pd.read_csv(sequence_path)
+
+    ## Sampling chromesome. Comment out to train/test on entire chromesome.
     seq_df = seq_df.head(1000)
+    
     seq = np.array(seq_df["seq"])
     pi, transitions_mat, emissions_mat, seq_to_inx = init_cpts(window_size)
     print("Initial Pi")
@@ -207,7 +278,6 @@ if __name__ == "__main__":
     log_likes, pi, transitions_mat, emissions_mat = fit_hmm_loop(pi, transitions_mat, emissions_mat, seq, seq_to_inx, iterations=iterations)
     print("Log Likelihoods")
     print(np.round(log_likes,4))
-
     print("Final Pi")
     print(np.round(pi,3))
     print("Final Transitions")
@@ -216,56 +286,77 @@ if __name__ == "__main__":
     print(np.round(emissions_mat,3))
 
 
-# try to run on simulated data:
-def runSimulatedData():
-    # HMM parameters
-    states = ['S1', 'S2']  # hidden states
-    observations = ['A', 'T', 'C', 'G']  # observed symbols
-    true_transition = np.array([[0.99, 0.01],
-                [0.01, 0.99]])
-    true_emission = np.array([[0.05, 0.6, 0.3, 0.05],   
-                [0.3, 0.2, 0.2, 0.3]])
-    true_pi = np.array([0.6, 0.4])
-    T_seq = 10000
+    viterbi_path = viterbi(emissions_mat, pi, seq, transitions_mat, seq_to_inx)
+    results = {"log_likes": log_likes, "pi": pi,
+               "transitions_mat": transitions_mat,
+               "emissions_mat": emissions_mat,
+               "seq": seq,
+               "seq_to_inx": seq_to_inx,
+               "iterations": iterations,
+               "viterbi_path": viterbi_path,
+              }
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    result_dir = "./results"
+    os.makedirs(result_dir, exist_ok=True)
+    out_path = os.path.join(result_dir, f"result_2_state_{ts}.pkl")
+    pickle.dump(results, open(out_path, "wb"))
 
-    # Generate HMM sequence
-    hidden_states = [np.random.choice(len(states), p=true_pi)]
-    observed_seq = [np.random.choice(len(observations), p=true_emission[hidden_states[0]])]
 
-    for t in range(1, T_seq):
-        hidden_states.append(np.random.choice(len(states), p=true_transition[hidden_states[-1]]))
-        observed_seq.append(np.random.choice(len(observations), p=true_emission[hidden_states[-1]]))
 
-    hidden_states = np.array(hidden_states)
-    observed_seq = np.array(observed_seq)
+    
+# # try to run on simulated data:
+# def runSimulatedData():
+#     # HMM parameters
+#     iterations = 30
+#     states = ['S1', 'S2']  # hidden states
+#     observations = ['A', 'T', 'C', 'G']  # observed symbols
+#     true_transition = np.array([[0.99, 0.01],
+#                 [0.01, 0.99]])
+#     true_emission = np.array([[0.05, 0.6, 0.3, 0.05],   
+#                 [0.3, 0.2, 0.2, 0.3]])
+#     true_pi = np.array([0.6, 0.4])
+#     T_seq = 10000
 
-    # Map numerical observations to letters
-    observed_seq_letters = [observations[i] for i in observed_seq]
+#     # Generate HMM sequence
+#     hidden_states = [np.random.choice(len(states), p=true_pi)]
+#     observed_seq = [np.random.choice(len(observations), p=true_emission[hidden_states[0]])]
 
-    nstates = 2
-    noutputs = 4
-    init_pi = np.random.rand(2)
-    init_pi /= init_pi.sum()
+#     for t in range(1, T_seq):
+#         hidden_states.append(np.random.choice(len(states), p=true_transition[hidden_states[-1]]))
+#         observed_seq.append(np.random.choice(len(observations), p=true_emission[hidden_states[-1]]))
 
-    init_transition = np.random.rand(nstates, nstates)
-    init_transition /= init_transition.sum(axis=1, keepdims=True)
-    # print(init_transition)
+#     hidden_states = np.array(hidden_states)
+#     observed_seq = np.array(observed_seq)
 
-    init_emission = np.random.rand(nstates, noutputs)
-    init_emission /= init_emission.sum(axis=1, keepdims=True) 
+#     # Map numerical observations to letters
+#     observed_seq_letters = [observations[i] for i in observed_seq]
 
-    log_likes, pi, transitions_mat, emissions_mat = fit_hmm_loop(init_pi, init_transition, init_emission, np.array(observed_seq_letters), seq_to_inx, iterations=30)
-    print("True Pi")
-    print(true_pi)
-    print("Final Pi")
-    print(np.round(pi,3))
-    print("True Transitions")
-    print(true_transition)
-    print("Final Transitions")
-    print(np.round(transitions_mat,3))
-    print("True Emissions")
-    print(true_emission)
-    print("Final Emissions")
-    print(np.round(emissions_mat,3))
-    print(np.round(log_likes,3))
-runSimulatedData()
+#     nstates = 2
+#     noutputs = 4
+#     init_pi = np.random.rand(2)
+#     init_pi /= init_pi.sum()
+
+#     init_transition = np.random.rand(nstates, nstates)
+#     init_transition /= init_transition.sum(axis=1, keepdims=True)
+#     # print(init_transition)
+
+#     init_emission = np.random.rand(nstates, noutputs)
+#     init_emission /= init_emission.sum(axis=1, keepdims=True) 
+#     log_likes, pi, transitions_mat, emissions_mat = fit_hmm_loop(init_pi, init_transition, init_emission, np.array(observed_seq_letters), seq_to_inx, iterations=iterations)
+
+
+    
+#     print("True Pi")
+#     print(true_pi)
+#     print("Final Pi")
+#     print(np.round(pi,3))
+#     print("True Transitions")
+#     print(true_transition)
+#     print("Final Transitions")
+#     print(np.round(transitions_mat,3))
+#     print("True Emissions")
+#     print(true_emission)
+#     print("Final Emissions")
+#     print(np.round(emissions_mat,3))
+#     print(np.round(log_likes,3))
+# runSimulatedData()
