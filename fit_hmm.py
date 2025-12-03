@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import datetime
 import pickle
 import os
+from matplotlib.ticker import FormatStrFormatter
 
 sequence_path = "./seq_to_coding_file.csv"
 
@@ -256,6 +257,30 @@ def plot_viterbi(viterbi_path: NDArray, true_path: NDArray) -> None:
     plt.tight_layout()
     plt.show()
 
+def plot_ll_range(ll, start=0, end=None):
+    ll = np.asarray(ll)
+    if end is None:
+        end = len(ll)
+
+    iters = np.arange(len(ll))
+
+    plt.figure(figsize=(6, 4))
+    plt.plot(iters[start:end], ll[start:end], marker='o')
+
+    ax = plt.gca()
+
+    # Disable scientific offset at top of axis (e.g. "1e5")
+    ax.ticklabel_format(style='plain', axis='y')
+
+    # Force scientific notation in tick labels themselves
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.5e'))
+
+    plt.title(f"Log-likelihood (Iterations {start}–{end})")
+    plt.xlabel("Iteration")
+    plt.ylabel("Log-likelihood")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
 
 
@@ -301,6 +326,8 @@ if __name__ == "__main__":
     out_path = os.path.join(result_dir, f"result_2_state_{ts}.pkl")
     pickle.dump(results, open(out_path, "wb"))
 
+    # plot_ll_range(log_likes, start=0, end=20)
+    # plot_ll_range(log_likes, start=2, end=20)
 
 
     
