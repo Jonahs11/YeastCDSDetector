@@ -1,7 +1,7 @@
 # YeastCDSDetector
 
 ## Overview
-This repository contains code and data-processing scripts for fitting Hidden Markov Models (HMMs) to genomic signal data from Saccharomyces cerevisiae chromosome XVI. The workflow includes preparing raw data, converting it into a usable format, and fitting HMMs with either 2 or 4 hidden states. Result files are stored in the results/ directory.
+This repository contains code and data-processing scripts for fitting Hidden Markov Models (HMMs) to genomic signal data from Saccharomyces cerevisiae chromosome XVI. The workflow includes preparing raw data, converting it into a usable format, and fitting HMMs with either 2 or 4 hidden states. Result files are stored in the results.
 
 ## Structure
 - `create_useable_format.ipynb` — prepares raw data  
